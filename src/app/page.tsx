@@ -2,103 +2,23 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, DollarSign, Calendar, Activity, Target, Zap, Eye } from 'lucide-react';
+import { BarChart3, TrendingUp, TrendingDown, Timer, Users, Activity, Eye, ArrowUpRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui';
 import CathiesArkTradesChart from '@/components/charts/cathies-ark-trades-chart';
-import { getAllFundsSummary, ARKFund, ARK_FUND_NAMES, CathiesArkTrade } from '@/lib/cathiesark-api';
-
-interface FundCardProps {
-  fund: ARKFund;
-  title: string;
-  description: string;
-  color: string;
-  trades: CathiesArkTrade[];
-  index: number;
-}
-
-const FundCard: React.FC<FundCardProps> = ({ fund, title, description, color, trades, index }) => {
-  const [isMounted, setIsMounted] = React.useState(false);
-  const buyValue = trades.filter(t => t.direction === 'BUY').reduce((sum, t) => sum + t.marketValue, 0);
-  const sellValue = trades.filter(t => t.direction === 'SELL').reduce((sum, t) => sum + t.marketValue, 0);
-  const netFlow = buyValue - sellValue;
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const formatMillion = (value: number) => {
-    if (!isMounted) return '0';
-    return (value / 1000000).toFixed(1);
-  };
-  
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
-    >
-      <Card className={`hover:shadow-lg transition-all duration-300 border-l-4 ${color} group cursor-pointer`}>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg font-bold">{fund}</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">{title}</p>
-            </div>
-            <Badge 
-              variant={netFlow >= 0 ? 'default' : 'destructive'}
-              className="px-2 py-1"
-            >
-              {netFlow >= 0 ? '净流入' : '净流出'}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <div className="flex items-center gap-1">
-                <TrendingUp className="w-3 h-3 text-green-600" />
-                <span className="text-xs text-green-700">买入</span>
-              </div>
-              <p className="text-sm font-semibold">${formatMillion(buyValue)}M</p>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-1">
-                <TrendingDown className="w-3 h-3 text-red-600" />
-                <span className="text-xs text-red-700">卖出</span>
-              </div>
-              <p className="text-sm font-semibold">${formatMillion(sellValue)}M</p>
-            </div>
-          </div>
-          
-          <div className="border-t pt-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">净流向</span>
-              <span className={`text-sm font-bold ${netFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {netFlow >= 0 ? '+' : ''}${formatMillion(netFlow)}M
-              </span>
-            </div>
-          </div>
-          
-          <div className="pt-2">
-            <a 
-              href={`/${fund.toLowerCase()}`}
-              className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-md transition-colors group-hover:shadow-sm ${color.replace('border-l-', 'bg-').replace('-500', '-500/10').replace('-600', '-600/10')} hover:bg-opacity-80`}
-            >
-              <Eye className="w-3 h-3" />
-              查看详情
-              <ArrowUpRight className="w-3 h-3" />
-            </a>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
+import { getAllFundsSummary, ARKFund, CathiesArkTrade } from '@/lib/cathiesark-api';
 
 export default function Home() {
   const [allData, setAllData] = React.useState(() => getAllFundsSummary());
   const [isLoading, setIsLoading] = React.useState(false);
   const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+    const interval = setInterval(() => {
+      setAllData(getAllFundsSummary());
+    }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const refreshData = React.useCallback(() => {
     setIsLoading(true);
@@ -108,267 +28,278 @@ export default function Home() {
     }, 1000);
   }, []);
 
-  React.useEffect(() => {
-    setIsMounted(true);
-    const interval = setInterval(refreshData, 5 * 60 * 1000); // 5 minutes
-    return () => clearInterval(interval);
-  }, [refreshData]);
-
-  const funds: Array<{ fund: ARKFund; title: string; description: string; color: string }> = [
-    { fund: 'ARKK', title: 'ARK Innovation ETF', description: '颠覆性创新技术', color: 'border-l-purple-500' },
-    { fund: 'ARKW', title: 'ARK Next Generation Internet ETF', description: '下一代互联网', color: 'border-l-blue-500' },
-    { fund: 'ARKG', title: 'ARK Genomic Revolution ETF', description: '基因组学革命', color: 'border-l-green-500' },
-    { fund: 'ARKQ', title: 'ARK Autonomous Technology & Robotics ETF', description: '自动驾驶与机器人', color: 'border-l-orange-500' },
-    { fund: 'ARKF', title: 'ARK Fintech Innovation ETF', description: '金融科技创新', color: 'border-l-yellow-500' },
-    { fund: 'ARKX', title: 'ARK Space Exploration & Innovation ETF', description: '太空探索与创新', color: 'border-l-cyan-500' },
-  ];
-
-  const fundTradesMap = React.useMemo(() => {
-    const map: Record<ARKFund, CathiesArkTrade[]> = {
-      ARKK: allData.trades.filter(t => t.fund === 'ARKK'),
-      ARKW: allData.trades.filter(t => t.fund === 'ARKW'),
-      ARKG: allData.trades.filter(t => t.fund === 'ARKG'),
-      ARKQ: allData.trades.filter(t => t.fund === 'ARKQ'),
-      ARKF: allData.trades.filter(t => t.fund === 'ARKF'),
-      ARKX: allData.trades.filter(t => t.fund === 'ARKX'),
-    };
-    return map;
-  }, [allData.trades]);
-
-  const topNetBuyStocks = React.useMemo(() => {
-    return allData.groupedTrades
-      .filter(g => g.netValue > 0)
-      .slice(0, 5)
-      .map(g => ({
-        symbol: g.symbol,
-        name: g.companyName.length > 20 ? g.companyName.substring(0, 17) + '...' : g.companyName,
-        value: g.netValue
-      }));
-  }, [allData.groupedTrades]);
-
-  const topNetSellStocks = React.useMemo(() => {
-    return allData.groupedTrades
-      .filter(g => g.netValue < 0)
-      .slice(0, 5)
-      .map(g => ({
-        symbol: g.symbol,
-        name: g.companyName.length > 20 ? g.companyName.substring(0, 17) + '...' : g.companyName,
-        value: Math.abs(g.netValue)
-      }));
-  }, [allData.groupedTrades]);
-
-  // 安全的数字格式化函数
   const formatMillion = React.useCallback((value: number) => {
     if (!isMounted) return '0';
     return (value / 1000000).toFixed(1);
   }, [isMounted]);
 
+  const fundCards = [
+    { 
+      fund: 'ARKK' as ARKFund, 
+      name: 'ARKK', 
+      description: 'ARK Innovation ETF',
+      color: 'from-purple-500 to-purple-600',
+      icon: '🚀'
+    },
+    { 
+      fund: 'ARKW' as ARKFund, 
+      name: 'ARKW', 
+      description: 'ARK Next Generation Internet ETF',
+      color: 'from-blue-500 to-blue-600',
+      icon: '🌐'
+    },
+    { 
+      fund: 'ARKG' as ARKFund, 
+      name: 'ARKG', 
+      description: 'ARK Genomic Revolution ETF',
+      color: 'from-green-500 to-green-600',
+      icon: '🧬'
+    },
+    { 
+      fund: 'ARKQ' as ARKFund, 
+      name: 'ARKQ', 
+      description: 'ARK Autonomous Technology & Robotics ETF',
+      color: 'from-orange-500 to-orange-600',
+      icon: '🤖'
+    },
+    { 
+      fund: 'ARKF' as ARKFund, 
+      name: 'ARKF', 
+      description: 'ARK Fintech Innovation ETF',
+      color: 'from-yellow-500 to-yellow-600',
+      icon: '💰'
+    },
+    { 
+      fund: 'ARKX' as ARKFund, 
+      name: 'ARKX', 
+      description: 'ARK Space Exploration & Innovation ETF',
+      color: 'from-cyan-500 to-cyan-600',
+      icon: '🚀'
+    }
+  ];
+
+  const topNetBuyStocks = React.useMemo(() => {
+    if (!isMounted) return [];
+    return allData.groupedTrades
+      .filter(g => g.netValue > 0)
+      .slice(0, 5);
+  }, [allData.groupedTrades, isMounted]);
+
+  const topNetSellStocks = React.useMemo(() => {
+    if (!isMounted) return [];
+    return allData.groupedTrades
+      .filter(g => g.netValue < 0)
+      .slice(0, 5);
+  }, [allData.groupedTrades, isMounted]);
+
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <BarChart3 className="w-8 h-8" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2">ARK 全基金汇总</h1>
+          <p className="text-purple-200">加载中...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <div className="max-w-7xl mx-auto p-6 space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900">
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
-        <motion.div
+        <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center space-y-4"
+          className="text-center mb-12"
         >
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="p-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl">
-              <Activity className="w-6 h-6 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
-              ARK 基金交易追踪器
-            </h1>
+          <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-3xl flex items-center justify-center mx-auto mb-6">
+            <BarChart3 className="w-10 h-10 text-white" />
           </div>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            实时监控 Cathie Wood 的 ARK 投资基金组合交易动态
+          <h1 className="text-5xl font-bold text-white mb-4">ARK 全基金汇总</h1>
+          <p className="text-xl text-purple-200 mb-6">
+            汇总 Cathie Wood 的 ARK Invest 全系列 ETF 交易数据和投资策略
           </p>
           
           <div className="flex items-center justify-center gap-4">
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
-              实时数据
+            <Badge className="bg-white/10 text-white border-white/20 px-4 py-2">
+              <Activity className="w-4 h-4 mr-2" />
+              实时数据更新
             </Badge>
-            <Badge variant="outline" className="flex items-center gap-1">
-              <Target className="w-3 h-3" />
-              6 只基金
+            <Badge className="bg-white/10 text-white border-white/20 px-4 py-2">
+              <Timer className="w-4 h-4 mr-2" />
+              11:04:30
             </Badge>
             <button
               onClick={refreshData}
               disabled={isLoading}
-              className="flex items-center gap-1 px-3 py-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 transition-colors"
+              className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg backdrop-blur-sm transition-all"
             >
-              <Zap className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
-              {isLoading ? '更新中...' : '刷新数据'}
+              刷新
             </button>
           </div>
         </motion.div>
 
-        {/* Summary Statistics */}
+        {/* Main Stats Overview */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-4 gap-6"
+          transition={{ delay: 0.2 }}
+          className="mb-12"
         >
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">总买入</p>
-                  <p className="text-2xl font-bold text-green-800 dark:text-green-200">
-                    ${formatMillion(allData.totalBuyValue)}M
-                  </p>
+          <Card className="bg-gray-900/40 backdrop-blur-sm border-gray-700/50 text-white">
+            <CardHeader>
+              <CardTitle className="text-white text-lg">ARK 全基金交易数据概况</CardTitle>
+              <p className="text-gray-300 text-sm">汇总 ARKK, ARKW, ARKG, ARKQ, ARKF, ARKX 六个基金交易数据</p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-purple-500/20 backdrop-blur-sm rounded-2xl p-6">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-white mb-1">
+                      {allData.groupedTrades.length}
+                    </div>
+                    <div className="text-purple-200 text-sm">总交易数量</div>
+                  </div>
                 </div>
-                <div className="p-3 bg-green-500 rounded-full">
-                  <TrendingUp className="w-5 h-5 text-white" />
+                
+                <div className="bg-green-500/20 backdrop-blur-sm rounded-2xl p-6">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-green-400 mb-1">
+                      ${formatMillion(allData.totalBuyValue)}M
+                    </div>
+                    <div className="text-green-200 text-sm">总买入金额</div>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border-red-200 dark:border-red-800">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-red-700 dark:text-red-300 mb-1">总卖出</p>
-                  <p className="text-2xl font-bold text-red-800 dark:text-red-200">
-                    ${formatMillion(allData.totalSellValue)}M
-                  </p>
+                
+                <div className="bg-red-500/20 backdrop-blur-sm rounded-2xl p-6">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-red-400 mb-1">
+                      ${formatMillion(allData.totalSellValue)}M
+                    </div>
+                    <div className="text-red-200 text-sm">总卖出金额</div>
+                  </div>
                 </div>
-                <div className="p-3 bg-red-500 rounded-full">
-                  <TrendingDown className="w-5 h-5 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">净流向</p>
-                  <p className={`text-2xl font-bold ${allData.netFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {allData.netFlow >= 0 ? '+' : ''}${formatMillion(allData.netFlow)}M
-                  </p>
-                </div>
-                <div className={`p-3 rounded-full ${allData.netFlow >= 0 ? 'bg-blue-500' : 'bg-orange-500'}`}>
-                  <DollarSign className="w-5 h-5 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">活跃股票</p>
-                  <p className="text-2xl font-bold text-purple-800 dark:text-purple-200">
-                    {allData.groupedTrades.length}
-                  </p>
-                </div>
-                <div className="p-3 bg-purple-500 rounded-full">
-                  <Activity className="w-5 h-5 text-white" />
+                
+                <div className="bg-blue-500/20 backdrop-blur-sm rounded-2xl p-6">
+                  <div className="text-center">
+                    <div className={`text-3xl font-bold mb-1 ${allData.netFlow >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {allData.netFlow >= 0 ? '+' : ''}${formatMillion(allData.netFlow)}M
+                    </div>
+                    <div className="text-blue-200 text-sm">净资金流向</div>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Top Stocks Summary */}
+        {/* Quick Stats Cards */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+          transition={{ delay: 0.3 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
         >
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-green-600">
-                <TrendingUp className="w-5 h-5" />
-                热门买入股票 (Top 5)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {topNetBuyStocks.map((stock, index) => (
-                  <div key={stock.symbol} className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                    <div>
-                      <p className="font-semibold text-sm">{stock.symbol}</p>
-                      <p className="text-xs text-muted-foreground">{stock.name}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-green-600">+${formatMillion(stock.value)}M</p>
-                      <Badge variant="outline" className="text-xs">#{index + 1}</Badge>
-                    </div>
+          <Card className="bg-green-500/10 backdrop-blur-sm border-green-500/20 text-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-green-200 mb-1">总买入</div>
+                  <div className="text-2xl font-bold text-green-400">
+                    ${formatMillion(allData.totalBuyValue)}M
                   </div>
-                ))}
+                </div>
+                <TrendingUp className="w-8 h-8 text-green-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-red-600">
-                <TrendingDown className="w-5 h-5" />
-                热门卖出股票 (Top 5)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {topNetSellStocks.map((stock, index) => (
-                  <div key={stock.symbol} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
-                    <div>
-                      <p className="font-semibold text-sm">{stock.symbol}</p>
-                      <p className="text-xs text-muted-foreground">{stock.name}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-red-600">-${formatMillion(stock.value)}M</p>
-                      <Badge variant="outline" className="text-xs">#{index + 1}</Badge>
-                    </div>
+          <Card className="bg-red-500/10 backdrop-blur-sm border-red-500/20 text-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-red-200 mb-1">总卖出</div>
+                  <div className="text-2xl font-bold text-red-400">
+                    ${formatMillion(allData.totalSellValue)}M
                   </div>
-                ))}
+                </div>
+                <TrendingDown className="w-8 h-8 text-red-400" />
               </div>
             </CardContent>
           </Card>
+
+          <Card className="bg-blue-500/10 backdrop-blur-sm border-blue-500/20 text-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-blue-200 mb-1">净流向</div>
+                  <div className={`text-2xl font-bold ${allData.netFlow >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {allData.netFlow >= 0 ? '+' : ''}${formatMillion(allData.netFlow)}M
+                  </div>
+                </div>
+                <Activity className="w-8 h-8 text-blue-400" />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Main Chart */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mb-12"
+        >
+          <div className="bg-gray-900/40 backdrop-blur-sm rounded-2xl border border-gray-700/50 overflow-hidden">
+            <CathiesArkTradesChart
+              trades={allData.trades}
+              showTop={20}
+              fundName="ARKK"
+              className="w-full"
+            />
+          </div>
         </motion.div>
 
         {/* Individual Fund Cards */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
+          transition={{ delay: 0.5 }}
+          className="mb-12"
         >
-          <h2 className="text-2xl font-bold text-center mb-6">基金概览</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {funds.map((fund, index) => (
-              <FundCard
-                key={fund.fund}
-                fund={fund.fund}
-                title={fund.title}
-                description={fund.description}
-                color={fund.color}
-                trades={fundTradesMap[fund.fund]}
-                index={index}
-              />
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Main Chart - All Funds Combined */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-        >
-          <CathiesArkTradesChart
-            trades={allData.trades}
-            showTop={20}
-            fundName="全部基金汇总"
-            className="w-full"
-          />
+          <Card className="bg-gray-900/40 backdrop-blur-sm border-gray-700/50 text-white">
+            <CardHeader>
+              <CardTitle className="text-white text-lg">查看单个基金详情</CardTitle>
+              <p className="text-gray-300 text-sm">点击任意基金查看更详细的交易数据和分析</p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {fundCards.map((fund, index) => (
+                  <motion.a
+                    key={fund.fund}
+                    href={`/${fund.fund.toLowerCase()}`}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.6 + index * 0.1 }}
+                    className="block group"
+                  >
+                    <div className={`bg-gradient-to-br ${fund.color} p-6 rounded-2xl text-center transform transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg`}>
+                      <div className="text-3xl mb-3">{fund.icon}</div>
+                      <div className="text-white font-bold text-lg mb-1">{fund.name}</div>
+                      <div className="text-white/80 text-xs mb-3">查看详情</div>
+                      <div className="flex items-center justify-center text-white/60">
+                        <Eye className="w-4 h-4 mr-1" />
+                        <ArrowUpRight className="w-3 h-3" />
+                      </div>
+                    </div>
+                  </motion.a>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
       </div>
     </div>
