@@ -17,9 +17,19 @@ interface FundCardProps {
 }
 
 const FundCard: React.FC<FundCardProps> = ({ fund, title, description, color, trades, index }) => {
+  const [isMounted, setIsMounted] = React.useState(false);
   const buyValue = trades.filter(t => t.direction === 'BUY').reduce((sum, t) => sum + t.marketValue, 0);
   const sellValue = trades.filter(t => t.direction === 'SELL').reduce((sum, t) => sum + t.marketValue, 0);
   const netFlow = buyValue - sellValue;
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const formatMillion = (value: number) => {
+    if (!isMounted) return '0';
+    return (value / 1000000).toFixed(1);
+  };
   
   return (
     <motion.div
@@ -49,14 +59,14 @@ const FundCard: React.FC<FundCardProps> = ({ fund, title, description, color, tr
                 <TrendingUp className="w-3 h-3 text-green-600" />
                 <span className="text-xs text-green-700">买入</span>
               </div>
-              <p className="text-sm font-semibold">${(buyValue / 1000000).toFixed(1)}M</p>
+              <p className="text-sm font-semibold">${formatMillion(buyValue)}M</p>
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-1">
                 <TrendingDown className="w-3 h-3 text-red-600" />
                 <span className="text-xs text-red-700">卖出</span>
               </div>
-              <p className="text-sm font-semibold">${(sellValue / 1000000).toFixed(1)}M</p>
+              <p className="text-sm font-semibold">${formatMillion(sellValue)}M</p>
             </div>
           </div>
           
@@ -64,7 +74,7 @@ const FundCard: React.FC<FundCardProps> = ({ fund, title, description, color, tr
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">净流向</span>
               <span className={`text-sm font-bold ${netFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {netFlow >= 0 ? '+' : ''}${(netFlow / 1000000).toFixed(1)}M
+                {netFlow >= 0 ? '+' : ''}${formatMillion(netFlow)}M
               </span>
             </div>
           </div>
@@ -88,6 +98,7 @@ const FundCard: React.FC<FundCardProps> = ({ fund, title, description, color, tr
 export default function Home() {
   const [allData, setAllData] = React.useState(() => getAllFundsSummary());
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isMounted, setIsMounted] = React.useState(false);
 
   const refreshData = React.useCallback(() => {
     setIsLoading(true);
@@ -98,6 +109,7 @@ export default function Home() {
   }, []);
 
   React.useEffect(() => {
+    setIsMounted(true);
     const interval = setInterval(refreshData, 5 * 60 * 1000); // 5 minutes
     return () => clearInterval(interval);
   }, [refreshData]);
@@ -144,6 +156,12 @@ export default function Home() {
         value: Math.abs(g.netValue)
       }));
   }, [allData.groupedTrades]);
+
+  // 安全的数字格式化函数
+  const formatMillion = React.useCallback((value: number) => {
+    if (!isMounted) return '0';
+    return (value / 1000000).toFixed(1);
+  }, [isMounted]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
@@ -200,7 +218,7 @@ export default function Home() {
                 <div>
                   <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">总买入</p>
                   <p className="text-2xl font-bold text-green-800 dark:text-green-200">
-                    ${(allData.totalBuyValue / 1000000).toFixed(1)}M
+                    ${formatMillion(allData.totalBuyValue)}M
                   </p>
                 </div>
                 <div className="p-3 bg-green-500 rounded-full">
@@ -216,7 +234,7 @@ export default function Home() {
                 <div>
                   <p className="text-sm font-medium text-red-700 dark:text-red-300 mb-1">总卖出</p>
                   <p className="text-2xl font-bold text-red-800 dark:text-red-200">
-                    ${(allData.totalSellValue / 1000000).toFixed(1)}M
+                    ${formatMillion(allData.totalSellValue)}M
                   </p>
                 </div>
                 <div className="p-3 bg-red-500 rounded-full">
@@ -232,7 +250,7 @@ export default function Home() {
                 <div>
                   <p className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">净流向</p>
                   <p className={`text-2xl font-bold ${allData.netFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {allData.netFlow >= 0 ? '+' : ''}${(allData.netFlow / 1000000).toFixed(1)}M
+                    {allData.netFlow >= 0 ? '+' : ''}${formatMillion(allData.netFlow)}M
                   </p>
                 </div>
                 <div className={`p-3 rounded-full ${allData.netFlow >= 0 ? 'bg-blue-500' : 'bg-orange-500'}`}>
@@ -282,7 +300,7 @@ export default function Home() {
                       <p className="text-xs text-muted-foreground">{stock.name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold text-green-600">+${(stock.value / 1000000).toFixed(1)}M</p>
+                      <p className="text-sm font-bold text-green-600">+${formatMillion(stock.value)}M</p>
                       <Badge variant="outline" className="text-xs">#{index + 1}</Badge>
                     </div>
                   </div>
@@ -307,7 +325,7 @@ export default function Home() {
                       <p className="text-xs text-muted-foreground">{stock.name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold text-red-600">-${(stock.value / 1000000).toFixed(1)}M</p>
+                      <p className="text-sm font-bold text-red-600">-${formatMillion(stock.value)}M</p>
                       <Badge variant="outline" className="text-xs">#{index + 1}</Badge>
                     </div>
                   </div>
